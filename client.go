@@ -37,11 +37,16 @@ func New(
 		return nil, err
 	}
 
+	p, err := public.New(host, timeout)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		host:    host,
 		chainId: chainId,
 
 		ethClient: c,
-		pubClient: public.New(host, timeout),
+		pubClient: p,
 	}, nil
 }
