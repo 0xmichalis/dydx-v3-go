@@ -31,13 +31,13 @@ func New(host string, timeout time.Duration) (*Client, error) {
 	}, nil
 }
 
-func (c Client) get(reqPath string, urlParams map[string]string) (*http.Response, error) {
+func (c Client) doRequest(method, path string, urlParams map[string]string, data io.Reader) (*http.Response, error) {
 	// build the request
 	host, err := url.Parse(c.host)
 	if err != nil {
 		return nil, err
 	}
-	host.Path = reqPath
+	host.Path = "/v3" + path
 
 	if len(urlParams) > 0 {
 		q := host.Query()
@@ -47,30 +47,7 @@ func (c Client) get(reqPath string, urlParams map[string]string) (*http.Response
 		host.RawQuery = q.Encode()
 	}
 
-	req, err := http.NewRequest(http.MethodGet, host.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// execute the request
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// Note that put will not handle HTTP errors.
-func (c Client) put(reqPath string, data io.Reader) (*http.Response, error) {
-	// build the request
-	host, err := url.Parse(c.host)
-	if err != nil {
-		return nil, err
-	}
-	host.Path = reqPath
-
-	req, err := http.NewRequest(http.MethodPut, host.String(), data)
+	req, err := http.NewRequest(http.MethodGet, host.String(), data)
 	if err != nil {
 		return nil, err
 	}
@@ -79,10 +56,20 @@ func (c Client) put(reqPath string, data io.Reader) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
+// Does not handle HTTP errors.
+func (c Client) get(path string, urlParams map[string]string) (*http.Response, error) {
+	return c.doRequest(http.MethodGet, path, urlParams, nil)
+}
+
+// Does not handle HTTP errors.
+func (c Client) put(path string, data io.Reader) (*http.Response, error) {
+	return c.doRequest(http.MethodPut, path, nil, data)
+}
+
 // UserExists checks whether the provided Ethereum address
 // has been onboarded as a user.
 func (c Client) UserExists(ethereumAddress string) (bool, error) {
-	path := "/v3/users/exists"
+	path := "/users/exists"
 	params := map[string]string{
 		"ethereumAddress": ethereumAddress,
 	}
@@ -109,7 +96,7 @@ func (c Client) UserExists(ethereumAddress string) (bool, error) {
 
 // UsernameExists checks whether the provided username exists
 func (c Client) UsernameExists(username string) (bool, error) {
-	path := "/v3/usernames"
+	path := "/usernames"
 	params := map[string]string{
 		"username": username,
 	}
@@ -137,7 +124,7 @@ func (c Client) UsernameExists(username string) (bool, error) {
 // GetMarkets fetches information about all available markets if an empty string
 // is provided or information about the specific market is one is specified.
 func (c Client) GetMarkets(market *string) (map[string]types.Market, error) {
-	path := "/v3/markets"
+	path := "/markets"
 	var params map[string]string
 	if market != nil && *market != "" {
 		params = map[string]string{
@@ -167,7 +154,7 @@ func (c Client) GetMarkets(market *string) (map[string]types.Market, error) {
 
 // GetOrderbook fetches the orderbook for a market
 func (c Client) GetOrderbook(market string) (*types.Orderbook, error) {
-	path := "/v3/orderbook/" + market
+	path := "/orderbook/" + market
 
 	resp, err := c.get(path, nil)
 	if err != nil {
@@ -191,7 +178,7 @@ func (c Client) GetOrderbook(market string) (*types.Orderbook, error) {
 // days is an optional day range for the statistics to have been
 // compiled over. Can be one of 1, 7, 30. Defaults to 1.
 func (c Client) GetStats(market *string, days *int32) (*types.MarketStats, error) {
-	path := "/v3/stats"
+	path := "/stats"
 	if market != nil && *market != "" {
 		path += "/" + *market
 	}
@@ -226,7 +213,7 @@ func (c Client) GetStats(market *string, days *int32) (*types.MarketStats, error
 // includes less information on individual transactions than the fills endpoint.
 // TODO: Use limit - (Optional): The number of candles to fetch (Max 100).
 func (c Client) GetTrades(market, startingBeforeOrAt, limit string) ([]types.Trade, error) {
-	path := "/v3/trades/" + market
+	path := "/trades/" + market
 	var params map[string]string
 	if startingBeforeOrAt != "" {
 		params = map[string]string{
@@ -256,7 +243,7 @@ func (c Client) GetTrades(market, startingBeforeOrAt, limit string) ([]types.Tra
 
 // GetHistoricalFunding fetches the historical funding for a market
 func (c Client) GetHistoricalFunding(market string, effectiveBeforeOrAt *string) ([]types.HistoricalFunding, error) {
-	path := "/v3/historical-funding/" + market
+	path := "/historical-funding/" + market
 	var params map[string]string
 	if effectiveBeforeOrAt != nil {
 		params = map[string]string{
@@ -293,7 +280,7 @@ func (c Client) GetHistoricalFunding(market string, effectiveBeforeOrAt *string)
 // predicted amount the user will be debited on L2.
 // TODO: Use amounts if provided
 func (c Client) GetFastWithdrawal(creditAsset, creditAmount, debitAmount *string) (map[string]types.LiquidityProvider, error) {
-	path := "/v3/fast-withdrawals"
+	path := "/fast-withdrawals"
 
 	resp, err := c.get(path, nil)
 	if err != nil {
@@ -316,7 +303,7 @@ func (c Client) GetFastWithdrawal(creditAsset, creditAmount, debitAmount *string
 }
 
 func (c Client) GetCandles(market string, resolution, fromISO, toISO, limit *string) ([]types.Candle, error) {
-	path := "/v3/candles/" + market
+	path := "/candles/" + market
 	params := make(map[string]string)
 	if resolution != nil {
 		params["resolution"] = *resolution
@@ -352,7 +339,7 @@ func (c Client) GetCandles(market string, resolution, fromISO, toISO, limit *str
 }
 
 func (c Client) GetTime() (*types.Time, error) {
-	path := "/v3/time"
+	path := "/time"
 
 	resp, err := c.get(path, nil)
 	if err != nil {
@@ -375,7 +362,7 @@ func (c Client) GetTime() (*types.Time, error) {
 // VerifyEmail verifies an email address by providing the verification
 // token sent to the email address.
 func (c Client) VerifyEmail(token string) error {
-	path := "/v3/emails/verify-email"
+	path := "/emails/verify-email"
 
 	t := struct {
 		Token string `json:"token"`
@@ -402,7 +389,7 @@ func (c Client) VerifyEmail(token string) error {
 // GetPublicRetroactiveMiningRewards gets the retroactive mining rewards for
 // an ethereum address.
 func (c Client) GetPublicRetroactiveMiningRewards(ethereumAddress string) (*types.PublicRetroactiveMiningReward, error) {
-	path := "/v3/rewards/public-retroactive-mining"
+	path := "/rewards/public-retroactive-mining"
 	params := map[string]string{
 		"ethereumAddress": ethereumAddress,
 	}
@@ -429,7 +416,7 @@ func (c Client) GetPublicRetroactiveMiningRewards(ethereumAddress string) (*type
 // This includes (but is not limited to) details on the exchange,
 // including addresses, fees, transfers, and rate limits.
 func (c Client) GetConfig() (*types.Config, error) {
-	path := "/v3/config"
+	path := "/config"
 
 	resp, err := c.get(path, nil)
 	if err != nil {
