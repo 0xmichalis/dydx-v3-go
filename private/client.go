@@ -56,12 +56,20 @@ func New(
 	}, nil
 }
 
-func (c Client) prepareRequest(method, path string, data []byte) (*http.Request, error) {
+func (c Client) doRequest(method, path string, urlParams map[string]string, data []byte) (*http.Response, error) {
 	host, err := url.Parse(c.host)
 	if err != nil {
 		return nil, err
 	}
 	host.Path = path
+
+	if len(urlParams) > 0 {
+		q := host.Query()
+		for k, v := range urlParams {
+			q.Set(k, v)
+		}
+		host.RawQuery = q.Encode()
+	}
 
 	req, err := http.NewRequest(method, host.String(), bytes.NewReader(data))
 	if err != nil {
@@ -79,7 +87,8 @@ func (c Client) prepareRequest(method, path string, data []byte) (*http.Request,
 	req.Header.Set("DYDX-TIMESTAMP", now)
 	req.Header.Set("DYDX-PASSPHRASE", c.apiKeyCredentials[passphrase])
 
-	return req, nil
+	// execute the request
+	return c.client.Do(req)
 }
 
 func (c Client) sign(method, path, timestamp string, data []byte) (string, error) {
@@ -130,4 +139,24 @@ func removeNils(initialMap map[string]interface{}) map[string]interface{} {
 		}
 	}
 	return withoutNils
+}
+
+// Does not handle HTTP errors.
+func (c Client) get(path string, urlParams map[string]string) (*http.Response, error) {
+	return c.doRequest(http.MethodGet, path, urlParams, nil)
+}
+
+// Does not handle HTTP errors.
+func (c Client) post(path string, data []byte) (*http.Response, error) {
+	return c.doRequest(http.MethodPost, path, nil, data)
+}
+
+// Does not handle HTTP errors.
+func (c Client) put(path string, data []byte) (*http.Response, error) {
+	return c.doRequest(http.MethodPut, path, nil, data)
+}
+
+// Does not handle HTTP errors.
+func (c Client) delete(path string, urlParams map[string]string) (*http.Response, error) {
+	return c.doRequest(http.MethodDelete, path, urlParams, nil)
 }
