@@ -167,3 +167,66 @@ type PublicRetroactiveMiningReward struct {
 type Config struct {
 	// TODO: FILLME
 }
+
+type ApiKey string
+
+type ApiKeys struct {
+	ApiKeys []ApiKey `json:"apiKeys"`
+}
+
+type Registration struct {
+	// Ethereum signature authorizing the user's Ethereum address to register
+	// for the corresponding position id.
+	Signature string `json:"signature"`
+}
+
+type User struct {
+	// The 20-byte Ethereum address.
+	EthereumAddress string `json:"ethereumAddress"`
+	// True if the user is registered on the starkware smart contract. This is false otherwise.
+	IsRegistered bool `json:"isRegistered"`
+	// Email address.
+	Email string `json:"email"`
+	// User defined username.
+	Username string `json:"username"`
+	// The affiliate link that referred this user, or null if the user was not referred.
+	ReferredByAffiliateLink *string `json:"referredByAffiliateLink,omitempty"`
+	// The fee rate the user would be willing to take as the maker. Note, 1% would be represented as 0.01.
+	MakerFeeRate string `json:"makerFeeRate"`
+	// The fee rate the user would be willing to take as the taker. Note, 1% would be represented as 0.01.
+	TakerFeeRate string `json:"takerFeeRate"`
+	// The user's thirty day maker volume. Note, this is in USD (eg $12.34 -> 12.34).
+	MakerVolume string `json:"makerVolume30D"`
+	// The user's thirty day maker volume. Note, this is in USD (eg $12.34 -> 12.34).
+	TakerVolume string `json:"takerVolume30D"`
+	// The user's thirty day fees. Note, this is in USD (eg $12.34 -> 12.34).
+	Fees string `json:"fees30D"`
+	// The user's unstructured user data.
+	UserData map[string]string `json:"userData"`
+	// The user's DYDX token holdings.
+	DydxTokenBalance string `json:"dydxTokenBalance"`
+	// The user's staked DYDX token holdings
+	StakedDydxTokenBalance string `json:"stakedDydxTokenBalance"`
+	// If the user's email address is verified to receive emails from dYdX.
+	IsEmailVerified bool `json:"isEmailVerified"`
+}
+
+type UserResponse struct {
+	User *User `json:"user"`
+}
+
+type UpdateUserRequest struct {
+	// User metadata in a map. This is serialized
+	// into a JSON blob.
+	UserData map[string]interface{} `json:"userData,omitempty"`
+	// Email to be used with the user.
+	Email string `json:"email,omitempty"`
+	// Username to be used for the user.
+	Username string `json:"username,omitempty"`
+	// Share username publically on leaderboard rankings.
+	IsSharingUsername string `json:"isSharingUsername,omitempty"`
+	// Share ETH address publically on leaderboard rankings.
+	IsSharingAddress string `json:"isSharingAddress,omitempty"`
+	// Country of the user's residence. Must be ISO 3166-1 Alpha-2 compliant.
+	Country string `json:"country,omitempty"`
+}

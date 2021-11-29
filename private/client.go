@@ -6,12 +6,15 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/tselementes/dydx-v3-go/types"
 )
 
 const (
@@ -92,7 +95,7 @@ func (c Client) doRequest(method, path string, urlParams map[string]string, data
 }
 
 func (c Client) sign(method, path, timestamp string, data []byte) (string, error) {
-	dataJSON, err := jsonStringify(data)
+	dataJSON, err := jsonStringifyWithoutNils(data)
 	if err != nil {
 		return "", err
 	}
@@ -113,12 +116,16 @@ func (c Client) sign(method, path, timestamp string, data []byte) (string, error
 	return base64.StdEncoding.EncodeToString(digest), nil
 }
 
-func jsonStringify(data []byte) (string, error) {
+func jsonStringifyWithoutNils(data []byte) (string, error) {
 	deserialized := map[string]interface{}{}
 	if err := json.Unmarshal(data, &deserialized); err != nil {
 		return "", err
 	}
-	out, err := json.Marshal(removeNils(deserialized))
+	return jsonStringify(deserialized)
+}
+
+func jsonStringify(data map[string]interface{}) (string, error) {
+	out, err := json.Marshal(data)
 	if err != nil {
 		return "", err
 	}
@@ -142,8 +149,15 @@ func removeNils(initialMap map[string]interface{}) map[string]interface{} {
 }
 
 // Does not handle HTTP errors.
-func (c Client) get(path string, urlParams map[string]string) (*http.Response, error) {
-	return c.doRequest(http.MethodGet, path, urlParams, nil)
+func (c Client) get(path string, urlParams map[string]string) ([]byte, error) {
+	resp, err := c.doRequest(http.MethodGet, path, urlParams, nil)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status: %v", resp.Status)
+	}
+	return ioutil.ReadAll(resp.Body)
 }
 
 // Does not handle HTTP errors.
@@ -159,4 +173,65 @@ func (c Client) put(path string, data []byte) (*http.Response, error) {
 // Does not handle HTTP errors.
 func (c Client) delete(path string, urlParams map[string]string) (*http.Response, error) {
 	return c.doRequest(http.MethodDelete, path, urlParams, nil)
+}
+
+func (c Client) GetApiKeys() ([]types.ApiKey, error) {
+	data, err := c.get("api-keys", nil)
+	if err != nil {
+		return nil, err
+	}
+	apiKeys := types.ApiKeys{}
+	if err := json.Unmarshal(data, &apiKeys); err != nil {
+		return nil, err
+	}
+	return apiKeys.ApiKeys, nil
+}
+
+// GetRegistration fetches the dYdX provided Ethereum signature required to
+// send a registration transaction to the Starkware smart contract.
+func (c Client) GetRegistration() (*types.Registration, error) {
+	data, err := c.get("registration", nil)
+	if err != nil {
+		return nil, err
+	}
+	registration := types.Registration{}
+	if err := json.Unmarshal(data, &registration); err != nil {
+		return nil, err
+	}
+	return &registration, nil
+}
+
+// GetUser fetches user information.
+func (c Client) GetUser() (*types.User, error) {
+	data, err := c.get("users", nil)
+	if err != nil {
+		return nil, err
+	}
+	uResp := &types.UserResponse{}
+	if err := json.Unmarshal(data, uResp); err != nil {
+		return nil, err
+	}
+	return uResp.User, nil
+}
+
+// UpdateUser updates user information and return the updated user.
+func (c Client) UpdateUser(req *types.UpdateUserRequest) (*types.User, error) {
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.put("users", data)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Check response status code
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	uResp := &types.UserResponse{}
+	if err := json.Unmarshal(body, uResp); err != nil {
+		return nil, err
+	}
+	return uResp.User, nil
 }
