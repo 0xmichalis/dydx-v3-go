@@ -180,11 +180,11 @@ func (c Client) GetApiKeys() ([]types.ApiKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	apiKeys := types.ApiKeys{}
-	if err := json.Unmarshal(data, &apiKeys); err != nil {
+	resp := &types.GetApiKeysResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
 		return nil, err
 	}
-	return apiKeys.ApiKeys, nil
+	return resp.ApiKeys, nil
 }
 
 // GetRegistration fetches the dYdX provided Ethereum signature required to
@@ -207,11 +207,11 @@ func (c Client) GetUser() (*types.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	uResp := &types.UserResponse{}
-	if err := json.Unmarshal(data, uResp); err != nil {
+	resp := &types.UserResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
 		return nil, err
 	}
-	return uResp.User, nil
+	return resp.User, nil
 }
 
 // UpdateUser updates user information and return the updated user.
@@ -234,4 +234,66 @@ func (c Client) UpdateUser(req *types.UpdateUserRequest) (*types.User, error) {
 		return nil, err
 	}
 	return uResp.User, nil
+}
+
+// GetAccount fetches ethereumAddress or if ethereumAddress is nil, it will
+// default to defaultAddress which is the default address the Client was
+// initialized with.
+func (c Client) GetAccount(ethereumAddress *common.Address) (*types.Account, error) {
+	address := c.defaultAddress
+	if ethereumAddress != nil {
+		address = *ethereumAddress
+	}
+	// TODO: Need to check address format
+	data, err := c.get(fmt.Sprintf("accounts/%x", address), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetAccountResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Account, nil
+}
+
+// GetAccounts fetches all accounts for a user.
+func (c Client) GetAccounts() ([]*types.Account, error) {
+	data, err := c.get("accounts", nil)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetAccountsResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Accounts, nil
+}
+
+// GetPositions fetches all user positions. Filters can be provided via
+// GetPositionsFilter or pass nil to fetch all positions.
+func (c Client) GetPositions(filters *types.GetPositionsFilter) ([]*types.Position, error) {
+	params := make(map[string]string)
+	if filters != nil {
+		if filters.Market != nil {
+			params["market"] = *filters.Market
+		}
+		if filters.Limit != nil {
+			params["limit"] = *filters.Limit
+		}
+		if filters.Status != nil {
+			params["status"] = *filters.Status
+		}
+		if filters.CreatedBeforeOrAt != nil {
+			params["createdBeforeOrAt"] = *filters.CreatedBeforeOrAt
+		}
+	}
+	data, err := c.get("positions", params)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetPositionsResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Positions, nil
 }

@@ -165,12 +165,37 @@ type PublicRetroactiveMiningReward struct {
 }
 
 type Config struct {
-	// TODO: FILLME
+	CollateralAssetId             string                  `json:"collateralAssetId"`
+	CollateralTokenAddress        string                  `json:"collateralTokenAddress"`
+	DefaultMakerFee               string                  `json:"defaultMakerFee"`
+	DefaultTakerFee               string                  `json:"defaultTakerFee"`
+	ExchangeAddress               string                  `json:"exchangeAddress"`
+	MaxExpectedBatchLengthMinutes string                  `json:"maxExpectedBatchLengthMinutes"`
+	MaxFastWithdrawalAmount       string                  `json:"maxFastWithdrawalAmount"`
+	CancelOrderRateLimiting       CancelOrderRateLimiting `json:"cancelOrderRateLimiting"`
+	PlaceOrderRateLimiting        PlaceOrderRateLimiting  `json:"placeOrderRateLimiting"`
+}
+
+type CancelOrderRateLimiting struct {
+	MaxPointsMulti  int32 `json:"maxPointsMulti"`
+	MaxPointsSingle int32 `json:"maxPointsSingle"`
+	WindowSecMulti  int32 `json:"windowSecMulti"`
+	WindowSecSingle int32 `json:"windowSecSingle"`
+}
+
+type PlaceOrderRateLimiting struct {
+	MaxPoints                 int32 `json:"maxPoints"`
+	WindowSec                 int32 `json:"windowSec"`
+	TargetNotional            int32 `json:"targetNotional"`
+	MinLimitConsumption       int32 `json:"minLimitConsumption"`
+	MinMarketConsumption      int32 `json:"minMarketConsumption"`
+	MinTriggerableConsumption int32 `json:"minTriggerableConsumption"`
+	MaxOrderConsumption       int32 `json:"maxOrderConsumption"`
 }
 
 type ApiKey string
 
-type ApiKeys struct {
+type GetApiKeysResponse struct {
 	ApiKeys []ApiKey `json:"apiKeys"`
 }
 
@@ -202,7 +227,7 @@ type User struct {
 	// The user's thirty day fees. Note, this is in USD (eg $12.34 -> 12.34).
 	Fees string `json:"fees30D"`
 	// The user's unstructured user data.
-	UserData map[string]string `json:"userData"`
+	UserData UnstructuredData `json:"userData"`
 	// The user's DYDX token holdings.
 	DydxTokenBalance string `json:"dydxTokenBalance"`
 	// The user's staked DYDX token holdings
@@ -211,6 +236,8 @@ type User struct {
 	IsEmailVerified bool `json:"isEmailVerified"`
 }
 
+type UnstructuredData map[string]interface{}
+
 type UserResponse struct {
 	User *User `json:"user"`
 }
@@ -218,7 +245,7 @@ type UserResponse struct {
 type UpdateUserRequest struct {
 	// User metadata in a map. This is serialized
 	// into a JSON blob.
-	UserData map[string]interface{} `json:"userData,omitempty"`
+	UserData UnstructuredData `json:"userData,omitempty"`
 	// Email to be used with the user.
 	Email string `json:"email,omitempty"`
 	// Username to be used for the user.
@@ -229,4 +256,87 @@ type UpdateUserRequest struct {
 	IsSharingAddress string `json:"isSharingAddress,omitempty"`
 	// Country of the user's residence. Must be ISO 3166-1 Alpha-2 compliant.
 	Country string `json:"country,omitempty"`
+}
+
+type GetAccountResponse struct {
+	Account *Account `json:"account"`
+}
+
+type Account struct {
+	// Public StarkKey associated with an account.
+	StarkKey string `json:"starkKey"`
+	// Starkware-specific positionId.
+	PositionId string `json:"positionId"`
+	// The amount of equity (value) in the account. Uses balances and oracle-prices to calculate.
+	Equity string `json:"equity"`
+	// The amount of collateral that is withdrawable from the account.
+	FreeCollateral string `json:"freeCollateral"`
+	// Human readable quote token balance. Can be negative.
+	QuoteBalance string `json:"quoteBalance"`
+	// The sum amount of all pending deposits.
+	PendingDeposits string `json:"pendingDeposits"`
+	// The sum amount of all pending withdrawal requests.
+	PendingWithdrawals string `json:"pendingWithdrawals"`
+	// When the account was first created in UTC.
+	CreatedAt string `json:"createdAt"`
+	// Markets where the user has no position are not returned in the map.
+	OpenPositions Positions `json:"openPositions"`
+	// Unique accountNumber for the account.
+	AccountNumber string `json:"accountNumber"`
+	// Unique id of the account hashed from the userId and the accountNumber.
+	ID string `json:"id"`
+}
+
+type Positions map[string]Position
+
+type Position struct {
+	// The market of the position.
+	Market string `json:"market"`
+	// The status of the position.
+	Status string `json:"status"`
+	// The side of the position. LONG or SHORT.
+	Side string `json:"side"`
+	// The current size of the position. Positive if long, negative if short, 0 if closed.
+	Size string `json:"size"`
+	// The maximum (absolute value) size of the position. Positive if long, negative if short.
+	MaxSize string `json:"maxSize"`
+	// Average price paid to enter the position.
+	EntryPrice string `json:"entryPrice"`
+	// Average price paid to exit the position.
+	ExitPrice *string `json:"exitPrice,omitempty"`
+	// The unrealized pnl of the position in quote currency using the market's index-price
+	// (https://docs.dydx.exchange/#index-prices) for the position to calculate.
+	UnrealizedPNL string `json:"unrealizedPnl"`
+	// The realized pnl of the position in quote currency.
+	RealizedPNL string `json:"realizedPnl"`
+	// Timestamp of when the position was opened.
+	CreatedAt string `json:"createdAt"`
+	// Timestamp of when the position was closed.
+	ClosedAt *string `json:"closedAt,omitempty"`
+	// Sum of all funding payments for this position.
+	NetFunding string `json:"netFunding"`
+	// Sum of all trades sizes that increased the size of this position.
+	SumOpen string `json:"sumOpen"`
+	// Sum of all trades sizes that decreased the size of this position.
+	SumClose string `json:"sumClose"`
+}
+
+type GetAccountsResponse struct {
+	Accounts []*Account `json:"accounts"`
+}
+
+type GetPositionsFilter struct {
+	// Market of the position.
+	Market *string `json:"market,omitempty"`
+	// Status of the position. Can be OPEN, CLOSED or LIQUIDATED.
+	Status *string `json:"status,omitempty"`
+	// The maximum number of positions that can be fetched via this request.
+	// Note, this cannot be greater than 100.
+	Limit *string `json:"limit,omitempty"`
+	// Set a date by which the positions had to be created.
+	CreatedBeforeOrAt *string `json:"createdBeforeOrAt,omitempty"`
+}
+
+type GetPositionsResponse struct {
+	Positions []*Position `json:"positions"`
 }
