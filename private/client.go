@@ -19,9 +19,9 @@ import (
 
 const (
 	// DYDX API credentials keys
-	key        = "key"
-	passphrase = "passphrase"
-	secret     = "secret"
+	Key        = "key"
+	Passphrase = "passphrase"
+	Secret     = "secret"
 )
 
 type Client struct {
@@ -62,9 +62,9 @@ func New(
 func (c Client) doRequest(method, path string, urlParams map[string]string, data []byte) (*http.Response, error) {
 	host, err := url.Parse(c.host)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse host (%s): %w", c.host, err)
 	}
-	host.Path = path
+	host.Path = "/v3/" + path
 
 	if len(urlParams) > 0 {
 		q := host.Query()
@@ -74,60 +74,70 @@ func (c Client) doRequest(method, path string, urlParams map[string]string, data
 		host.RawQuery = q.Encode()
 	}
 
+	if len(data) == 0 {
+		// Inject emtpy JSON struct in case no data is provided
+		// so JSON unmarshaling to sign the request won't fail.
+		data = []byte(`{}`)
+	}
+
 	req, err := http.NewRequest(method, host.String(), bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build new request: %w", err)
 	}
 
 	now := time.Now().Format(time.RFC3339)
 	signature, err := c.sign(method, path, now, data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to sign request: %w", err)
 	}
 
 	req.Header.Set("DYDX-SIGNATURE", signature)
-	req.Header.Set("DYDX-API-KEY", c.apiKeyCredentials[key])
+	req.Header.Set("DYDX-API-KEY", c.apiKeyCredentials[Key])
 	req.Header.Set("DYDX-TIMESTAMP", now)
-	req.Header.Set("DYDX-PASSPHRASE", c.apiKeyCredentials[passphrase])
+	req.Header.Set("DYDX-PASSPHRASE", c.apiKeyCredentials[Passphrase])
 
 	// execute the request
-	return c.client.Do(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to %s %s: %w", strings.ToUpper(method), path, err)
+	}
+	return resp, nil
 }
 
 func (c Client) sign(method, path, timestamp string, data []byte) (string, error) {
 	dataJSON, err := jsonStringifyWithoutNils(data)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot stringify JSON: %w", err)
 	}
 	message := timestamp +
 		strings.ToUpper(method) +
 		path +
 		dataJSON
 
-	s, err := base64.StdEncoding.DecodeString(c.apiKeyCredentials[secret])
+	s, err := base64.URLEncoding.DecodeString(c.apiKeyCredentials[Secret])
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot decode from base64: %w", err)
 	}
 	h := hmac.New(sha256.New, s)
 	if _, err := h.Write([]byte(message)); err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot hash to buffer: %w", err)
 	}
 	digest := h.Sum(nil)
-	return base64.StdEncoding.EncodeToString(digest), nil
+	return base64.URLEncoding.EncodeToString(digest), nil
 }
 
 func jsonStringifyWithoutNils(data []byte) (string, error) {
 	deserialized := map[string]interface{}{}
 	if err := json.Unmarshal(data, &deserialized); err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot unmarshal to drop nils: %w", err)
 	}
-	return jsonStringify(deserialized)
+	return jsonStringify(removeNils(deserialized))
 }
 
 func jsonStringify(data map[string]interface{}) (string, error) {
 	out, err := json.Marshal(data)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot marshal to JSON: %w", err)
 	}
 	return string(out), nil
 }
