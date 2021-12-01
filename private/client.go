@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -74,19 +73,13 @@ func (c Client) doRequest(method, path string, urlParams map[string]string, data
 		host.RawQuery = q.Encode()
 	}
 
-	if len(data) == 0 {
-		// Inject emtpy JSON struct in case no data is provided
-		// so JSON unmarshaling to sign the request won't fail.
-		data = []byte(`{}`)
-	}
-
 	req, err := http.NewRequest(method, host.String(), bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to build new request: %w", err)
 	}
 
-	now := time.Now().Format(time.RFC3339)
-	signature, err := c.sign(method, path, now, data)
+	now := time.Now().UTC().Format(time.RFC3339)
+	signature, err := c.sign(method, host.Path, now, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign request: %w", err)
 	}
@@ -99,18 +92,24 @@ func (c Client) doRequest(method, path string, urlParams map[string]string, data
 	// execute the request
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to %s %s: %w", strings.ToUpper(method), path, err)
+		return nil, fmt.Errorf("failed to %s %s: %w", method, host.Path, err)
 	}
 	return resp, nil
 }
 
 func (c Client) sign(method, path, timestamp string, data []byte) (string, error) {
-	dataJSON, err := jsonStringifyWithoutNils(data)
-	if err != nil {
-		return "", fmt.Errorf("cannot stringify JSON: %w", err)
+	var dataJSON string
+	var err error
+
+	if len(data) > 0 {
+		dataJSON, err = jsonStringifyWithoutNils(data)
+		if err != nil {
+			return "", fmt.Errorf("cannot stringify JSON: %w", err)
+		}
 	}
+
 	message := timestamp +
-		strings.ToUpper(method) +
+		method +
 		path +
 		dataJSON
 
