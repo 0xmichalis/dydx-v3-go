@@ -340,3 +340,141 @@ type GetPositionsFilter struct {
 type GetPositionsResponse struct {
 	Positions []*Position `json:"positions"`
 }
+
+type Order struct {
+	// The unique id assigned by dYdX.
+	ID string `json:"id"`
+	// The unique id assigned by the client.
+	ClientID string `json:"clientId"`
+	// The id of the account.
+	AccountID string `json:"accountId"`
+	// Market of the fill.
+	Market string `json:"market"`
+	// Either BUY or SELL.
+	Side string `json:"side"`
+	// The price of the order. Must adhere to the market's tick size.
+	Price string `json:"price"`
+	// The trigger price of the order. Must adhere to the market's tick size.
+	TriggerPrice *string `json:"trigerPrice,omitempty"`
+	// Used for trailing stops. Percent drop from maximum price that will trigger the order.
+	TrailingPercent *string `json:"trailingPercent,omitempty"`
+	// Total size (base currency) of the order
+	Size string `json:"size"`
+	// Size of order not yet filled.
+	RemainingSize string `json:"remainingSize"`
+	// The type of the fill.
+	Type OrderType `json:"type"`
+	// Timestamp when the fill was created.
+	CreatedAt string `json:"createdAt"`
+	// Time order was either filled or canceled.
+	UnfillableAt string `json:"unfillableAt"`
+	// Time order will expire.
+	ExpiresAt string `json:"expiresAt"`
+	// See order statuses below.
+	Status OrderStatus `json:"status"`
+	// One of GTT (Good til time), FOK(Fill or kill) or IOC (Immediate or cancel). This will default to GTT.
+	TimeInForce string `json:"timeInForce"`
+	// If the order will cancel if it would take the position of TAKER.
+	PostOnly bool `json:"postOnly"`
+	// See cancel reasons below.
+	CancelReason *CancelReason `json:"cancelReason,omitempty"`
+}
+
+type OrderType string
+
+const (
+	// Market order (must be FOK or IOC).
+	OrderTypeMarket OrderType = "MARKET"
+	// Limit order.
+	OrderTypeLimit OrderType = "LIMIT"
+	// Stop limit order.
+	OrderTypeStop OrderType = "STOP"
+	// Trailing stop limit order.
+	OrderTypeTrailingStop OrderType = "TRAILING_STOP"
+	// Take profit limit order.
+	OrderTypeTakeProfit OrderType = "TAKE_PROFIT"
+	// Indicates the account was liquidated (fills only).
+	OrderTypeLiquidated OrderType = "LIQUIDATED"
+	// Indicates the account took over a liquidated account (fills only).
+	OrderTypeLiquidation OrderType = "LIQUIDATION"
+)
+
+type OrderStatus string
+
+const (
+	Pending     OrderStatus = "PENDING"
+	Open        OrderStatus = "OPEN"
+	Filled      OrderStatus = "FILLED"
+	Canceled    OrderStatus = "CANCELED"
+	Untriggered OrderStatus = "UNTRIGGERED"
+)
+
+type CancelReason string
+
+const (
+	Undercollateralized CancelReason = "UNDERCOLLATERALIZED"
+	Expired             CancelReason = "EXPIRED"
+	UserCanceled        CancelReason = "USER_CANCELED"
+	SelfTrade           CancelReason = "SELF_TRADE"
+	Failed              CancelReason = "FAILED"
+	CouldNotFill        CancelReason = "COULD_NOT_FILL"
+	PostOnlyWouldCross  CancelReason = "POST_ONLY_WOULD_CROSS"
+)
+
+type GetOrdersFilter struct {
+	// Market of the order.
+	Market *string `json:"market,omitempty"`
+	// A list of statuses to filter by. Must be in the subset PENDING
+	Status *string `json:"status,omitempty"`
+	// Either BUY or SELL.
+	Side *string `json:"side,omitempty"`
+	// The expected type of the order. This can be LIMIT, STOP, TRAILING_STOP or TAKE_PROFIT.
+	Type *string `json:"type,omitempty"`
+	// The maximum number of orders that can be fetched via this request. Note, this cannot be greater than 100.
+	Limit *string `json:"limit,omitempty"`
+	// Set a date by which the orders had to be created.
+	CreatedBeforeOrAt *string `json:"createdBeforeOrAt,omitempty"`
+	// Returns the most recently created orders instead of the oldest and the order is from most recent to least recent (up to limit).
+	ReturnLatestOrders *bool `json:"returnLatestOrders,omitempty"`
+}
+
+type GetOrdersResponse struct {
+	Orders []*Order `json:"orders"`
+}
+
+type GetOrderByIdResponse struct {
+	Order *Order `json:"order"`
+}
+
+type OrderRequest struct {
+	// Market of the order.
+	Market string `json:"market"`
+	// Either BUY or SELL.
+	Side string `json:"side"`
+	// The type of order. This can be MARKET, LIMIT, STOP_LIMIT, TRAILING_STOP or TAKE_PROFIT.
+	Type OrderType `json:"type"`
+	// Whether the order should be canceled if it would fill immediately on reaching the matching-engine.
+	PostOnly bool `json:"postOnly"`
+	// Size of the order, in base currency (i.e. an ETH-USD position of size 1 represents 1 ETH).
+	Size string `json:"size"`
+	// Worst accepted price of the base asset in USD.
+	Price string `json:"price"`
+	// Is the highest accepted fee for the trade. See below for more information.
+	LimitFee string `json:"limitFee"`
+	// Time at which the order will expire if not filled. This is the Good-Til-Time and is accurate to a granularity of about 15 seconds.
+	Expiration string `json:"expiration"`
+	// (Optional) One of GTT (Good til time), FOK(Fill or kill) or IOC (Immediate or cancel). This will default to GTT.
+	TimeInForce string `json:"timeInForce"`
+	// The id of the order that is being replaced by this one.
+	CancelID *string `json:"cancelId,omitempty"`
+	// The triggerPrice at which this order will go to the matching-engine.
+	TriggerPrice *string `json:"triggerPrice,omitempty"`
+	// The percent that the triggerPrice trails the index price of the market.
+	TrailingPercent *string `json:"trailingPercent,omitempty"`
+	// Unique id of the client associated with the order. Must be <= 40 characters. When using the client,
+	// if not included, will be randomly generated by the client.
+	ClientID string `json:"clientId"`
+	// Signature for the order, signed with the account's STARK private key. When using the client, if not
+	// included, will be done by the client. For more information see above.
+	Signature string `json:"signature"`
+}

@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -184,6 +185,7 @@ func (c Client) delete(path string, urlParams map[string]string) (*http.Response
 	return c.doRequest(http.MethodDelete, path, urlParams, nil)
 }
 
+// GetApiKeys fetches all api keys associated with an Ethereum address.
 func (c Client) GetApiKeys() ([]types.ApiKey, error) {
 	data, err := c.get("api-keys", nil)
 	if err != nil {
@@ -305,4 +307,72 @@ func (c Client) GetPositions(filters *types.GetPositionsFilter) ([]*types.Positi
 		return nil, err
 	}
 	return resp.Positions, nil
+}
+
+// GetOrders fetches active (not filled or canceled) orders for a user by specified parameters.
+func (c Client) GetOrders(filters *types.GetOrdersFilter) ([]*types.Order, error) {
+	params := make(map[string]string)
+	if filters != nil {
+		if filters.Market != nil {
+			params["market"] = *filters.Market
+		}
+		if filters.Limit != nil {
+			params["limit"] = *filters.Limit
+		}
+		if filters.Status != nil {
+			params["status"] = *filters.Status
+		}
+		if filters.Side != nil {
+			params["side"] = *filters.Side
+		}
+		if filters.Type != nil {
+			params["type"] = *filters.Type
+		}
+		if filters.CreatedBeforeOrAt != nil {
+			params["createdBeforeOrAt"] = *filters.CreatedBeforeOrAt
+		}
+		if filters.ReturnLatestOrders != nil {
+			params["returnLatestOrders"] = strconv.FormatBool(*filters.ReturnLatestOrders)
+		}
+	}
+	data, err := c.get("orders", params)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetOrdersResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Orders, nil
+}
+
+// GetOrderByID fetches an order by its id
+func (c Client) GetOrderByID(id string) (*types.Order, error) {
+	data, err := c.get(fmt.Sprintf("orders/%s", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetOrderByIdResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Order, nil
+}
+
+// GetOrderByClientID fetches an order by its client id
+func (c Client) GetOrderByClientID(id string) (*types.Order, error) {
+	data, err := c.get(fmt.Sprintf("orders/client/%s", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp := &types.GetOrderByIdResponse{}
+	if err := json.Unmarshal(data, resp); err != nil {
+		return nil, err
+	}
+	return resp.Order, nil
+}
+
+func (c Client) CreateOrder(req *types.OrderRequest) (*types.Order, error) {
+	// TODO: FILLME
+	return nil, nil
 }
