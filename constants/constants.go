@@ -1,4 +1,4 @@
-package client
+package constants
 
 const (
 	// ------------ API URLs ------------
@@ -207,44 +207,44 @@ var SYNTHETIC_ASSET_ID_MAP = map[string]string{
 
 // ------------ Asset Resolution (Quantum Size) ------------
 //
-//The asset resolution is the number of quantums (Starkware units) that fit
-//within one "human-readable" unit of the asset. For example, if the asset
-//resolution for BTC is 1e10, then the smallest unit representable within
-//Starkware is 1e-10 BTC, i.e. 1/100th of a satoshi.
+// The asset resolution is the number of quantums (Starkware units) that fit
+// within one "human-readable" unit of the asset. For example, if the asset
+// resolution for BTC is 1e10, then the smallest unit representable within
+// Starkware is 1e-10 BTC, i.e. 1/100th of a satoshi.
 //
-//For the collateral asset (USDC), the chosen resolution corresponds to the
-//base units of the ERC-20 token. For the other, synthetic, assets, the
-//resolutions are chosen such that prices relative to USDC are close to one.
-var ASSET_RESOLUTION = map[string]string{
-	ASSET_USDC:    "1e6",
-	ASSET_BTC:     "1e10",
-	ASSET_ETH:     "1e9",
-	ASSET_LINK:    "1e7",
-	ASSET_AAVE:    "1e8",
-	ASSET_UNI:     "1e7",
-	ASSET_SUSHI:   "1e7",
-	ASSET_SOL:     "1e7",
-	ASSET_YFI:     "1e10",
-	ASSET_ONEINCH: "1e7",
-	ASSET_AVAX:    "1e7",
-	ASSET_SNX:     "1e7",
-	ASSET_CRV:     "1e6",
-	ASSET_UMA:     "1e7",
-	ASSET_DOT:     "1e7",
-	ASSET_DOGE:    "1e5",
-	ASSET_MATIC:   "1e6",
-	ASSET_MKR:     "1e9",
-	ASSET_FIL:     "1e7",
-	ASSET_ADA:     "1e6",
-	ASSET_ATOM:    "1e7",
-	ASSET_COMP:    "1e8",
-	ASSET_BCH:     "1e8",
-	ASSET_LTC:     "1e8",
-	ASSET_EOS:     "1e6",
-	ASSET_ALGO:    "1e6",
-	ASSET_ZRX:     "1e6",
-	ASSET_XMR:     "1e8",
-	ASSET_ZEC:     "1e8",
+// For the collateral asset (USDC), the chosen resolution corresponds to the
+// base units of the ERC-20 token. For the other, synthetic, assets, the
+// resolutions are chosen such that prices relative to USDC are close to one.
+var ASSET_RESOLUTION = map[string]int64{
+	ASSET_USDC:    1e6,
+	ASSET_BTC:     1e10,
+	ASSET_ETH:     1e9,
+	ASSET_LINK:    1e7,
+	ASSET_AAVE:    1e8,
+	ASSET_UNI:     1e7,
+	ASSET_SUSHI:   1e7,
+	ASSET_SOL:     1e7,
+	ASSET_YFI:     1e10,
+	ASSET_ONEINCH: 1e7,
+	ASSET_AVAX:    1e7,
+	ASSET_SNX:     1e7,
+	ASSET_CRV:     1e6,
+	ASSET_UMA:     1e7,
+	ASSET_DOT:     1e7,
+	ASSET_DOGE:    1e5,
+	ASSET_MATIC:   1e6,
+	ASSET_MKR:     1e9,
+	ASSET_FIL:     1e7,
+	ASSET_ADA:     1e6,
+	ASSET_ATOM:    1e7,
+	ASSET_COMP:    1e8,
+	ASSET_BCH:     1e8,
+	ASSET_LTC:     1e8,
+	ASSET_EOS:     1e6,
+	ASSET_ALGO:    1e6,
+	ASSET_ZRX:     1e6,
+	ASSET_XMR:     1e8,
+	ASSET_ZEC:     1e8,
 }
 
 var FACT_REGISTRY_CONTRACT = map[int]string{

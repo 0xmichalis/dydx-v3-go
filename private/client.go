@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -373,6 +374,29 @@ func (c Client) GetOrderByClientID(id string) (*types.Order, error) {
 }
 
 func (c Client) CreateOrder(req *types.OrderRequest) (*types.Order, error) {
-	// TODO: FILLME
-	return nil, nil
+	if req.Signature == "" && c.starkPrivateKey == "" {
+		return nil, errors.New("No signature provided and client was not initialized with stark private key")
+	}
+
+	data, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.post("orders", data)
+	if err != nil {
+		return nil, err
+	}
+
+	respData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	o := &types.GetOrderByIdResponse{}
+	if err := json.Unmarshal(respData, o); err != nil {
+		return nil, err
+	}
+
+	return o.Order, nil
 }
