@@ -10,37 +10,43 @@ import (
 // More info can be found here:
 // https://docs.starkware.co/starkex-v3/starkex-deep-dive/starkex-specific-concepts
 
-func ToQuantumExact(amount float64, asset string) (int64, error) {
+func ToQuantumExact(amount *big.Float, asset string) (int64, error) {
 	resolution := big.NewFloat(float64(constants.ASSET_RESOLUTION[asset]))
-	fAmount := big.NewFloat(amount)
-	fAmount.Mul(fAmount, resolution)
+	a := new(big.Float).Mul(amount, resolution)
 
-	if !fAmount.IsInt() {
-		// TODO: Fix float printing here
-		return 0, fmt.Errorf("amount %s is not a multiple of the quantum size %.0e", big.NewFloat(amount).String(), float64(constants.ASSET_RESOLUTION[asset]))
+	if !a.IsInt() {
+		// TODO: Fix printing
+		return 0, fmt.Errorf("amount %s is not a multiple of the quantum size %.0e", amount.Text('g', 15), float64(constants.ASSET_RESOLUTION[asset]))
 	}
-	got, _ := fAmount.Int64()
+	got, _ := a.Int64()
+
 	return got, nil
 }
 
-func ToQuantumRoundUp(amount float64, asset string) int64 {
+func ToQuantumRoundUp(amount *big.Float, asset string) int64 {
 	resolution := big.NewFloat(float64(constants.ASSET_RESOLUTION[asset]))
-	fAmount := big.NewFloat(amount)
-	fAmount.Mul(fAmount, resolution)
+	a := new(big.Float).Mul(amount, resolution)
 
-	got, _ := fAmount.Int64()
-	if !fAmount.IsInt() {
+	got, _ := a.Int64()
+	if !a.IsInt() {
+		// Round up if needed
 		got++
 	}
 
 	return got
 }
 
-func ToQuantumRoundDown(amount float64, asset string) int64 {
+func ToQuantumRoundDown(amount *big.Float, asset string) int64 {
 	resolution := big.NewFloat(float64(constants.ASSET_RESOLUTION[asset]))
-	fAmount := big.NewFloat(amount)
-	fAmount.Mul(fAmount, resolution)
+	amount.Mul(amount, resolution)
 
-	got, _ := fAmount.Int64()
+	// Rounding down happens automatically by Int64 if needed
+	got, _ := amount.Int64()
+
 	return got
+}
+
+func NonceFromClientID(clientID string) string {
+	// TODO: FILLME
+	return ""
 }

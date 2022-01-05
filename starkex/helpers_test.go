@@ -1,6 +1,7 @@
 package starkex_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/tselementes/dydx-v3-go/constants"
@@ -8,7 +9,7 @@ import (
 )
 
 func TestToQuantumExact(t *testing.T) {
-	humanAmount := 145.000600001
+	humanAmount := big.NewFloat(145.000600001)
 	asset := constants.SYNTHETIC_ASSET_MAP[constants.MARKET_ETH_USD]
 
 	expected := int64(145000600001)
@@ -22,7 +23,7 @@ func TestToQuantumExact(t *testing.T) {
 }
 
 func TestToQuantumRoundUp(t *testing.T) {
-	humanAmount := 145.0006000011
+	humanAmount := big.NewFloat(145.0006000011)
 	asset := constants.SYNTHETIC_ASSET_MAP[constants.MARKET_ETH_USD]
 
 	expected := int64(145000600002)
@@ -33,7 +34,7 @@ func TestToQuantumRoundUp(t *testing.T) {
 }
 
 func TestToQuantumRoundDown(t *testing.T) {
-	humanAmount := 145.0006000001
+	humanAmount := big.NewFloat(145.0006000001)
 	asset := constants.SYNTHETIC_ASSET_MAP[constants.MARKET_ETH_USD]
 
 	expected := int64(145000600000)
